@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Walk Tracker" />
+  <title>Walk Tracker</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0e1a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .screen { display: none; flex-direction: column; min-height: 100vh; }
+    .screen.active { display: flex; }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #0d1b2a 0%, #1a2744 100%);
+      padding: 20px 20px 16px;
+      border-bottom: 2px solid #00bcd4;
+      text-align: center;
+    }
+    .header h1 { font-size: 1.1rem; color: #00bcd4; font-weight: 700; letter-spacing: 0.5px; }
+    .header p { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
+
+    /* ── Content ── */
+    .content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #00bcd4;
+      margin-bottom: 16px;
+    }
+
+    /* ── Scale inputs ── */
+    .question-card {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .question-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 12px;
+    }
+    .scale-row {
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+    }
+    .scale-btn {
+      flex: 1;
+      padding: 12px 4px;
+      border-radius: 10px;
+      border: 2px solid #1e293b;
+      background: #1a2234;
+      color: #94a3b8;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .scale-btn.selected {
+      border-color: #00bcd4;
+      background: #00bcd410;
+      color: #00bcd4;
+    }
+    .scale-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-size: 0.65rem;
+      color: #64748b;
+    }
+
+    /* ── Toggle ── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .toggle-wrap {
+      position: relative;
+      width: 52px;
+      height: 28px;
+    }
+    .toggle-wrap input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #1e293b;
+      border-radius: 28px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-slider:before {
+      content: '';
+      position: absolute;
+      width: 20px; height: 20px;
+      left: 4px; bottom: 4px;
+      background: #64748b;
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+    input:checked + .toggle-slider { background: #00bcd410; border: 2px solid #00bcd4; }
+    input:checked + .toggle-slider:before { transform: translateX(24px); background: #00bcd4; }
+
+    /* ── Notes textarea ── */
+    .notes-input {
+      width: 100%;
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      color: #e2e8f0;
+      padding: 12px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .notes-input:focus { border-color: #00bcd4; }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      width: 100%;
+      padding: 18px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, #00bcd4, #0097a7);
+      color: #0a0e1a;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      cursor: pointer;
+      margin-top: 8px;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 4px 20px #00bcd440;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .btn-primary:active { transform: scale(0.98); box-shadow: 0 2px 10px #00bcd440; }
+
+    .btn-stop {
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      box-shadow: 0 4px 20px #ef444440;
+      color: #fff;
+    }
+    .btn-stop:active { box-shadow: 0 2px 10px #ef444440; }
+
+    /* ── Session info box ── */
+    .info-box {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #1e293b;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-key { font-size: 0.75rem; color: #64748b; }
+    .info-val { font-size: 0.9rem; font-weight: 600; color: #e2e8f0; font-family: monospace; }
+
+    /* ── Timer ── */
+    .timer-display {
+      text-align: center;
+      font-size: 3.5rem;
+      font-weight: 800;
+      color: #00bcd4;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 2px;
+      padding: 10px 0;
+      text-shadow: 0 0 30px #00bcd480;
+    }
+
+    /* ── GPS status ── */
+    .gps-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-bottom: 12px;
+    }
+    .gps-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #64748b;
+      animation: pulse 2s infinite;
+    }
+    .gps-dot.active { background: #10b981; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── Map ── */
+    #walk-map {
+      width: 100%;
+      height: 250px;
+      border-radius: 12px;
+      border: 1px solid #1e293b;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    /* ── Points counter ── */
+    .points-badge {
+      display: inline-block;
+      background: #00bcd410;
+      border: 1px solid #00bcd440;
+      color: #00bcd4;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    /* ── Success screen ── */
+    .success-icon {
+      font-size: 4rem;
+      text-align: center;
+      padding: 30px 0 16px;
+    }
+    .success-title {
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #00bcd4;
+      margin-bottom: 8px;
+    }
+    .success-sub {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-bottom: 24px;
+    }
+
+    /* ── Error toast ── */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #ef4444;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 9999;
+      max-width: 90vw;
+      text-align: center;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .footer-spacer { height: 30px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 1 — Pre-walk questionnaire
+═══════════════════════════════════════════════════════ -->
+<div id="screen-pre" class="screen active">
+  <div class="header">
+    <h1>Walk Tracker</h1>
+    <p>Pre-Walk Assessment</p>
+  </div>
+  <div class="content">
+    <div class="section-title">How are you feeling right now?</div>
+
+    <div class="question-card">
+      <div class="question-label">Sleep Quality Last Night</div>
+      <div class="scale-row" id="scale-sleep"></div>
+      <div class="scale-labels"><span>Very poor</span><span>Excellent</span></div>
+    </div>
+
+    <div class="question-card">
+      <div class="question-label">Pain Level Today</div>
+      <div class="scale-row" id="scale-pain"></div>
+      <div class="scale-labels"><span>No pain</span><span>Severe pain</span></div>
+    </div>
+
+    <div class="question-card">
+      <div class="question-label">Energy Level</div>
+      <div class="scale-row" id="scale-energy"></div>
+      <div class="scale-labels"><span>Exhausted</span><span>Very energetic</span></div>
+    </div>
+
+    <div class="question-card">
+      <div class="question-label">Medication Taken Today?</div>
+      <div class="toggle-row">
+        <span style="font-size:0.85rem;color:#94a3b8;">Yes, I have taken my medication</span>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="tog-medication" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="question-card">
+      <div class="question-label">Any Notes Before Your Walk?</div>
+      <textarea id="pre-notes" class="notes-input" rows="3" placeholder="Optional — anything worth recording before you start…"></textarea>
+    </div>
+
+    <button class="btn-primary" onclick="startWalk()">▶ START WALK</button>
+    <div class="footer-spacer"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 2 — Active walk
+═══════════════════════════════════════════════════════ -->
+<div id="screen-walk" class="screen">
+  <div class="header">
+    <h1>Walk in Progress</h1>
+    <p id="walk-session-label">Session —</p>
+  </div>
+  <div class="content">
+
+    <div class="timer-display" id="timer">00:00:00</div>
+
+    <div class="gps-status">
+      <div class="gps-dot" id="gps-dot"></div>
+      <span id="gps-label">Waiting for GPS…</span>
+    </div>
+
+    <div id="walk-map"></div>
+
+    <div class="points-badge" id="pts-badge">0 GPS points recorded</div>
+
+    <div class="info-box">
+      <div class="info-row">
+        <span class="info-key">Session ID</span>
+        <span class="info-val" id="info-session-id">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Started at</span>
+        <span class="info-val" id="info-start-time">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Latitude</span>
+        <span class="info-val" id="info-lat">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Longitude</span>
+        <span class="info-val" id="info-lon">—</span>
+      </div>
+    </div>
+
+    <button class="btn-primary btn-stop" onclick="stopWalk()">⬛ STOP WALK</button>
+    <div class="footer-spacer"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 3 — Post-walk questionnaire
+═══════════════════════════════════════════════════════ -->
+<div id="screen-post" class="screen">
+  <div class="header">
+    <h1>Walk Complete</h1>
+    <p>Post-Walk Assessment</p>
+  </div>
+  <div class="content">
+    <div class="section-title">How did the walk go?</div>
+
+    <div class="question-card">
+      <div class="question-label">Perceived Exertion</div>
+      <div class="scale-row" id="scale-exertion"></div>
+      <div class="scale-labels"><span>Very light</span><span>Maximal</span></div>
+    </div>
+
+    <div class="question-card">
+      <div class="question-label">Fatigue Level Now</div>
+      <div class="scale-row" id="scale-fatigue"></div>
+      <div class="scale-labels"><span>No fatigue</span><span>Exhausted</span></div>
+    </div>
+
+    <div class="question-card">
+      <div class="question-label">Confidence During Walk</div>
+      <div class="scale-row" id="scale-confidence"></div>
+      <div class="scale-labels"><span>Not confident</span><span>Very confident</span></div>
+    </div>
+
+    <div class="question-card">
+      <div class="question-label">Did the Walk Trigger Pain?</div>
+      <div class="toggle-row">
+        <span style="font-size:0.85rem;color:#94a3b8;">Yes, pain was triggered</span>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="tog-pain-triggered" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="question-card">
+      <div class="question-label">Any Notes After Your Walk?</div>
+      <textarea id="post-notes" class="notes-input" rows="3" placeholder="Optional — how did it feel? Anything unusual?"></textarea>
+    </div>
+
+    <button class="btn-primary" onclick="submitWalk()">✓ SUBMIT WALK DATA</button>
+    <div class="footer-spacer"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 4 — Success
+═══════════════════════════════════════════════════════ -->
+<div id="screen-done" class="screen">
+  <div class="header">
+    <h1>Walk Tracker</h1>
+    <p>Data Saved</p>
+  </div>
+  <div class="content">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Walk Saved Successfully</div>
+    <div class="success-sub" id="done-sub">Your session data has been uploaded to Firebase.</div>
+
+    <div class="info-box" id="done-summary"></div>
+
+    <button class="btn-primary" style="margin-top:24px;" onclick="resetApp()">+ START NEW WALK</button>
+    <div class="footer-spacer"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ════════════════════════════════════════════════════
+     Firebase SDK (v9 compat)
+════════════════════════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+/* ─────────────────────────────────────────────────────────
+   FIREBASE CONFIGURATION
+   Replace these values with your own from the Firebase console:
+   https://console.firebase.google.com → Project settings → Your apps
+   ───────────────────────────────────────────────────────── */
+const FIREBASE_CONFIG = {
+  apiKey:            "REPLACE_WITH_YOUR_API_KEY",
+  authDomain:        "REPLACE_WITH_YOUR_PROJECT_ID.firebaseapp.com",
+  projectId:         "REPLACE_WITH_YOUR_PROJECT_ID",
+  storageBucket:     "REPLACE_WITH_YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
+  appId:             "REPLACE_WITH_YOUR_APP_ID"
+};
+
+let db;
+try {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.firestore();
+} catch (e) {
+  console.warn("Firebase not configured yet:", e.message);
+}
+
+/* ─────────────────────────────────────────────────────────
+   STATE
+   ───────────────────────────────────────────────────────── */
+let sessionId = null;
+let startTimestamp = null;
+let stopTimestamp = null;
+let gpsPoints = [];
+let timerInterval = null;
+let gpsInterval = null;
+let walkMap = null;
+let walkPolyline = null;
+let startMarker = null;
+let currentMarker = null;
+
+const preAnswers = {};
+const postAnswers = {};
+
+/* ─────────────────────────────────────────────────────────
+   SCALE BUILDERS
+   ───────────────────────────────────────────────────────── */
+function buildScale(containerId, key, store) {
+  const container = document.getElementById(containerId);
+  for (let i = 1; i <= 5; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'scale-btn';
+    btn.textContent = i;
+    btn.onclick = () => {
+      container.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      store[key] = i;
+    };
+    container.appendChild(btn);
+  }
+}
+
+buildScale('scale-sleep',      'sleep_quality', preAnswers);
+buildScale('scale-pain',       'pain_level',    preAnswers);
+buildScale('scale-energy',     'energy_level',  preAnswers);
+buildScale('scale-exertion',   'exertion',      postAnswers);
+buildScale('scale-fatigue',    'fatigue',       postAnswers);
+buildScale('scale-confidence', 'confidence',    postAnswers);
+
+/* ─────────────────────────────────────────────────────────
+   HELPERS
+   ───────────────────────────────────────────────────────── */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function generateSessionId() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `WLK-${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+}
+
+function formatTime(ms) {
+  const total = Math.floor(ms / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return [h, m, s].map(n => String(n).padStart(2, '0')).join(':');
+}
+
+function formatTimestamp(date) {
+  return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+/* ─────────────────────────────────────────────────────────
+   SCREEN 1 → START WALK
+   ───────────────────────────────────────────────────────── */
+function startWalk() {
+  if (!preAnswers.sleep_quality) { toast('Please rate your sleep quality'); return; }
+  if (!preAnswers.pain_level)    { toast('Please rate your pain level');    return; }
+  if (!preAnswers.energy_level)  { toast('Please rate your energy level');  return; }
+
+  preAnswers.medication_taken = document.getElementById('tog-medication').checked;
+  preAnswers.notes            = document.getElementById('pre-notes').value.trim();
+
+  sessionId       = generateSessionId();
+  startTimestamp  = new Date();
+  gpsPoints       = [];
+
+  document.getElementById('walk-session-label').textContent = sessionId;
+  document.getElementById('info-session-id').textContent    = sessionId;
+  document.getElementById('info-start-time').textContent    = formatTimestamp(startTimestamp);
+
+  showScreen('screen-walk');
+
+  // Timer
+  timerInterval = setInterval(() => {
+    document.getElementById('timer').textContent = formatTime(Date.now() - startTimestamp.getTime());
+  }, 1000);
+
+  // Map (deferred so element is visible first)
+  setTimeout(initMap, 100);
+
+  // GPS
+  startGPS();
+}
+
+/* ─────────────────────────────────────────────────────────
+   MAP
+   ───────────────────────────────────────────────────────── */
+function initMap() {
+  if (walkMap) { walkMap.remove(); walkMap = null; }
+
+  walkMap = L.map('walk-map', { zoomControl: true, attributionControl: false })
+             .setView([55.8642, -4.2518], 15); // default: Glasgow
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+  }).addTo(walkMap);
+
+  walkPolyline = L.polyline([], { color: '#00bcd4', weight: 4, opacity: 0.9 }).addTo(walkMap);
+}
+
+function addMapPoint(lat, lon) {
+  if (!walkMap) return;
+  const latlng = [lat, lon];
+  walkPolyline.addLatLng(latlng);
+  walkMap.setView(latlng, 17);
+
+  if (!startMarker) {
+    startMarker = L.circleMarker(latlng, {
+      radius: 8, fillColor: '#00bcd4', color: '#fff', weight: 2, fillOpacity: 1
+    }).addTo(walkMap).bindTooltip('Start', { permanent: false });
+  }
+
+  if (currentMarker) walkMap.removeLayer(currentMarker);
+  currentMarker = L.circleMarker(latlng, {
+    radius: 6, fillColor: '#f59e0b', color: '#fff', weight: 2, fillOpacity: 1
+  }).addTo(walkMap);
+}
+
+/* ─────────────────────────────────────────────────────────
+   GPS
+   ───────────────────────────────────────────────────────── */
+function startGPS() {
+  const dot   = document.getElementById('gps-dot');
+  const label = document.getElementById('gps-label');
+
+  if (!navigator.geolocation) {
+    label.textContent = 'GPS not available on this device';
+    return;
+  }
+
+  function recordPoint() {
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+        const ts = new Date().toISOString();
+
+        gpsPoints.push({ lat, lon, ts, accuracy });
+        dot.classList.add('active');
+        label.textContent = `GPS active — ${gpsPoints.length} point${gpsPoints.length !== 1 ? 's' : ''} recorded`;
+        document.getElementById('pts-badge').textContent = `${gpsPoints.length} GPS point${gpsPoints.length !== 1 ? 's' : ''} recorded`;
+        document.getElementById('info-lat').textContent  = lat.toFixed(6);
+        document.getElementById('info-lon').textContent  = lon.toFixed(6);
+
+        addMapPoint(lat, lon);
+      },
+      err => {
+        dot.classList.remove('active');
+        label.textContent = `GPS error: ${err.message}`;
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 5000 }
+    );
+  }
+
+  recordPoint(); // immediate first point
+  gpsInterval = setInterval(recordPoint, 10000); // then every 10 s
+}
+
+/* ─────────────────────────────────────────────────────────
+   SCREEN 2 → STOP WALK
+   ───────────────────────────────────────────────────────── */
+function stopWalk() {
+  stopTimestamp = new Date();
+  clearInterval(timerInterval);
+  clearInterval(gpsInterval);
+
+  // Final map marker
+  if (gpsPoints.length > 0 && walkMap) {
+    const last = gpsPoints[gpsPoints.length - 1];
+    if (currentMarker) walkMap.removeLayer(currentMarker);
+    L.circleMarker([last.lat, last.lon], {
+      radius: 8, fillColor: '#f59e0b', color: '#fff', weight: 2, fillOpacity: 1
+    }).addTo(walkMap).bindTooltip('End', { permanent: false });
+  }
+
+  showScreen('screen-post');
+}
+
+/* ─────────────────────────────────────────────────────────
+   SCREEN 3 → SUBMIT
+   ───────────────────────────────────────────────────────── */
+async function submitWalk() {
+  if (!postAnswers.exertion)   { toast('Please rate perceived exertion');   return; }
+  if (!postAnswers.fatigue)    { toast('Please rate your fatigue level');    return; }
+  if (!postAnswers.confidence) { toast('Please rate your walk confidence'); return; }
+
+  postAnswers.pain_triggered = document.getElementById('tog-pain-triggered').checked;
+  postAnswers.notes          = document.getElementById('post-notes').value.trim();
+
+  const durationMs = stopTimestamp.getTime() - startTimestamp.getTime();
+  const durationSec = Math.floor(durationMs / 1000);
+
+  const sessionData = {
+    session_id:      sessionId,
+    start_timestamp: startTimestamp.toISOString(),
+    stop_timestamp:  stopTimestamp.toISOString(),
+    duration_seconds: durationSec,
+    gps_points:      gpsPoints,
+    pre_walk:        preAnswers,
+    post_walk:       postAnswers,
+    created_at:      firebase.firestore ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
+  };
+
+  // ── Save to Firebase ──
+  let savedToFirebase = false;
+  if (db) {
+    try {
+      await db.collection('walk_sessions').doc(sessionId).set(sessionData);
+      savedToFirebase = true;
+    } catch (e) {
+      console.error('Firebase save error:', e);
+      toast('Firebase not configured — data saved locally only');
+    }
+  } else {
+    toast('Firebase not configured — see README to connect');
+  }
+
+  // ── Always save to localStorage as backup ──
+  const saved = JSON.parse(localStorage.getItem('walk_sessions') || '[]');
+  saved.push(sessionData);
+  localStorage.setItem('walk_sessions', JSON.stringify(saved));
+
+  // ── Show success screen ──
+  const mins = Math.floor(durationSec / 60);
+  const secs = durationSec % 60;
+  document.getElementById('done-sub').textContent = savedToFirebase
+    ? 'Your session data has been uploaded to Firebase.'
+    : 'Saved locally (configure Firebase to enable cloud sync).';
+
+  document.getElementById('done-summary').innerHTML = `
+    <div class="info-row"><span class="info-key">Session ID</span><span class="info-val">${sessionId}</span></div>
+    <div class="info-row"><span class="info-key">Walk Duration</span><span class="info-val">${mins}m ${secs}s</span></div>
+    <div class="info-row"><span class="info-key">GPS Points</span><span class="info-val">${gpsPoints.length}</span></div>
+    <div class="info-row"><span class="info-key">Pre-walk Energy</span><span class="info-val">${preAnswers.energy_level}/5</span></div>
+    <div class="info-row"><span class="info-key">Post-walk Fatigue</span><span class="info-val">${postAnswers.fatigue}/5</span></div>
+  `;
+
+  showScreen('screen-done');
+}
+
+/* ─────────────────────────────────────────────────────────
+   RESET
+   ───────────────────────────────────────────────────────── */
+function resetApp() {
+  sessionId = null;
+  startTimestamp = null;
+  stopTimestamp = null;
+  gpsPoints = [];
+  Object.keys(preAnswers).forEach(k => delete preAnswers[k]);
+  Object.keys(postAnswers).forEach(k => delete postAnswers[k]);
+
+  // Reset scale buttons
+  document.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('tog-medication').checked    = false;
+  document.getElementById('tog-pain-triggered').checked = false;
+  document.getElementById('pre-notes').value  = '';
+  document.getElementById('post-notes').value = '';
+
+  if (walkMap) { walkMap.remove(); walkMap = null; }
+  walkPolyline = null; startMarker = null; currentMarker = null;
+
+  document.getElementById('timer').textContent    = '00:00:00';
+  document.getElementById('pts-badge').textContent = '0 GPS points recorded';
+  document.getElementById('gps-dot').classList.remove('active');
+  document.getElementById('gps-label').textContent = 'Waiting for GPS…';
+
+  showScreen('screen-pre');
+}
+</script>
+</body>
+</html>

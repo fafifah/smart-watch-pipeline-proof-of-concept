@@ -1,0 +1,54 @@
+# GitHub Pages deployment workflow
+# ──────────────────────────────────────────────────────────────────────────────
+# This workflow is READY but will only actually deploy when you go to:
+#   GitHub → Repository settings → Pages → Source → "GitHub Actions"
+# Until you do that (and make the repo public), nothing deploys.
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Deploy Dashboard to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dashboard/**'
+      - 'data/sessions.json'
+
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare Pages content
+        run: |
+          mkdir -p _site/data
+          cp -r dashboard/. _site/
+          cp data/sessions.json _site/data/sessions.json
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
