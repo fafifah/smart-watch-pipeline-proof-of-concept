@@ -612,53 +612,66 @@
     <div class="section-heading">End-to-End Data Pipeline</div>
     <p class="section-sub">From participant to insight in four automated stages — capturing physiological, behavioural, and spatial data simultaneously.</p>
 
+    <!-- Phase label row -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <span style="background:#00bcd420;border:1px solid #00bcd440;color:#00bcd4;border-radius:20px;padding:4px 14px;font-size:0.7rem;font-weight:700;letter-spacing:1px;">● DURING WALK — automatic</span>
+      <span style="background:#f59e0b20;border:1px solid #f59e0b40;color:#f59e0b;border-radius:20px;padding:4px 14px;font-size:0.7rem;font-weight:700;letter-spacing:1px;">● AFTER WALK — manual step (proof-of-concept)</span>
+      <span style="background:#a855f720;border:1px solid #a855f740;color:#a855f7;border-radius:20px;padding:4px 14px;font-size:0.7rem;font-weight:700;letter-spacing:1px;">● FUTURE — automated in production study</span>
+    </div>
+
     <div class="pipeline-wrap">
       <div class="pipeline">
 
-        <div class="pipe-node">
+        <div class="pipe-node" style="border-color:#00bcd440;">
           <span class="pipe-icon">🧍</span>
           <div class="pipe-title">Participant</div>
-          <div class="pipe-desc">Research participant completing real-world walking in their everyday environment</div>
+          <div class="pipe-desc">Researcher completing real-world walks in everyday environments to validate the pipeline</div>
+          <div style="margin-top:8px;font-size:0.62rem;color:#00bcd4;font-weight:700;">● DURING</div>
         </div>
 
         <div class="pipe-arrow">→</div>
 
-        <div class="pipe-node">
+        <div class="pipe-node" style="border-color:#00bcd440;">
           <span class="pipe-icon">📋</span>
           <div class="pipe-title">Pre-Walk Survey</div>
-          <div class="pipe-desc">Mobile web app captures sleep, pain, energy, and medication status before each walk</div>
+          <div class="pipe-desc">Mobile web app (hosted online) captures sleep, pain, energy, and medication before each walk — works on mobile data anywhere</div>
+          <div style="margin-top:8px;font-size:0.62rem;color:#00bcd4;font-weight:700;">● DURING · automatic</div>
         </div>
 
         <div class="pipe-arrow">→</div>
 
-        <div class="pipe-node">
+        <div class="pipe-node" style="border-color:#00bcd440;">
+          <span class="pipe-icon">📍</span>
+          <div class="pipe-title">GPS Tracking</div>
+          <div class="pipe-desc">iPhone records GPS coordinates every 10 seconds during the walk and saves them to Firebase in real time</div>
+          <div style="margin-top:8px;font-size:0.62rem;color:#00bcd4;font-weight:700;">● DURING · automatic</div>
+        </div>
+
+        <div class="pipe-arrow">→</div>
+
+        <div class="pipe-node" style="border-color:#f59e0b40;">
           <span class="pipe-icon">⌚</span>
           <div class="pipe-title">Wearable Device</div>
-          <div class="pipe-desc">Redmi Watch 5 Lite records HR, SpO₂, steps, and active energy continuously</div>
+          <div class="pipe-desc">Redmi Watch 5 Lite records HR, SpO₂, steps, and active energy. Syncs to Mi Fitness → Apple Health after the walk</div>
+          <div style="margin-top:8px;font-size:0.62rem;color:#f59e0b;font-weight:700;">● AFTER · manual sync</div>
         </div>
 
         <div class="pipe-arrow">→</div>
 
-        <div class="pipe-node">
-          <span class="pipe-icon">📱</span>
-          <div class="pipe-title">Mi Fitness → Apple Health</div>
-          <div class="pipe-desc">Watch data syncs via Mi Fitness and exports to Apple Health on iPhone</div>
-        </div>
-
-        <div class="pipe-arrow">→</div>
-
-        <div class="pipe-node">
+        <div class="pipe-node" style="border-color:#f59e0b40;">
           <span class="pipe-icon">🐍</span>
           <div class="pipe-title">Python Extraction</div>
-          <div class="pipe-desc">Automated script matches watch metrics to walk sessions by timestamp and calculates GPS-derived distance and speed</div>
+          <div class="pipe-desc">Script matches Apple Health export to walk sessions by timestamp, calculates GPS distance and speed, merges all data streams</div>
+          <div style="margin-top:8px;font-size:0.62rem;color:#f59e0b;font-weight:700;">● AFTER · manual run</div>
         </div>
 
         <div class="pipe-arrow">→</div>
 
-        <div class="pipe-node">
+        <div class="pipe-node" style="border-color:#00bcd440;">
           <span class="pipe-icon">🔥</span>
           <div class="pipe-title">Firebase</div>
-          <div class="pipe-desc">Real-time cloud database stores all session data, GPS tracks, and questionnaire responses</div>
+          <div class="pipe-desc">Cloud database stores all session data, GPS tracks, and questionnaire responses — written automatically during the walk</div>
+          <div style="margin-top:8px;font-size:0.62rem;color:#00bcd4;font-weight:700;">● DURING · automatic</div>
         </div>
 
         <div class="pipe-arrow">→</div>
@@ -666,10 +679,18 @@
         <div class="pipe-node" style="border-color: var(--teal);">
           <span class="pipe-icon">📊</span>
           <div class="pipe-title">Live Dashboard</div>
-          <div class="pipe-desc">This page — merges all data streams into a unified research view with interactive maps and charts</div>
+          <div class="pipe-desc">Unified research view with interactive route maps, physiological charts, and session data table — updated after each walk</div>
+          <div style="margin-top:8px;font-size:0.62rem;color:#00bcd4;font-weight:700;">● AFTER · auto-deploys</div>
         </div>
 
       </div>
+    </div>
+
+    <div style="margin-top:20px;background:#f59e0b10;border:1px solid #f59e0b30;border-radius:10px;padding:14px 18px;font-size:0.8rem;color:#94a3b8;line-height:1.7;">
+      <strong style="color:#f59e0b;">Note on wearable data extraction:</strong>
+      Consumer wearables including the Redmi Watch 5 Lite do not expose a live data API.
+      In this proof-of-concept, physiological data (HR, SpO₂, steps) is exported manually from Apple Health after each walk using the Health Auto Export app, then matched to walk sessions by timestamp using the Python script.
+      <strong style="color:#e2e8f0;">The production study will use a device with an open API (e.g. Polar H10 or Garmin) to automate this step entirely.</strong>
     </div>
   </div>
 </section>
@@ -795,12 +816,13 @@
         <span class="card-icon">🔬</span>
         <div class="card-title">What This Pipeline Measures</div>
         <div class="card-body">
-          This pipeline simultaneously captures <strong style="color:var(--text);">physiological load</strong> (heart rate, SpO₂, energy expenditure),
-          <strong style="color:var(--text);">biomechanical output</strong> (steps, speed, GPS trajectory), and
-          <strong style="color:var(--text);">subjective experience</strong> (pain, fatigue, confidence, exertion)
-          for every real-world walk. By combining wearable sensor data with participant-reported outcomes
-          in a single timestamped record, it creates a richer picture of walking burden than any single
-          instrument can provide alone.
+          Three data streams are captured per walk and merged into a single timestamped record:
+          <br /><br />
+          <strong style="color:var(--teal);">Automatic during the walk</strong> — GPS trajectory (every 10 s), walk duration, session ID, and full pre- and post-walk questionnaire responses (sleep, pain, energy, fatigue, exertion, confidence).
+          <br /><br />
+          <strong style="color:var(--amber);">Manual after the walk</strong> — physiological data from the wearable (heart rate, SpO₂, steps, active energy) exported from Apple Health and matched to the session by timestamp.
+          <br /><br />
+          Together these give a richer picture of walking burden than any single instrument can provide alone.
         </div>
       </div>
 
@@ -811,9 +833,14 @@
           Walking is the foundation of urban mobility, yet most transport models treat pedestrians
           as homogeneous and assume constant walking speed. For people managing chronic conditions —
           pain, fatigue, cardiovascular or respiratory disease — the physiological cost of walking
-          varies dramatically by day, route, and health state. This pipeline enables researchers to
-          quantify that variability objectively, supporting more <strong style="color:var(--text);">inclusive infrastructure design</strong>,
-          better health intervention targeting, and evidence-based <strong style="color:var(--text);">active travel policy</strong>.
+          varies dramatically by day, route, and health state.
+          <br /><br />
+          This pipeline enables researchers to quantify that variability objectively, linking
+          <strong style="color:var(--text);">where</strong> someone walked (GPS route),
+          <strong style="color:var(--text);">how hard</strong> their body worked (HR, SpO₂),
+          and <strong style="color:var(--text);">how they felt</strong> (questionnaire) —
+          supporting more inclusive infrastructure design, better health intervention targeting,
+          and evidence-based active travel policy.
         </div>
       </div>
 
@@ -821,13 +848,15 @@
         <span class="card-icon">🚀</span>
         <div class="card-title">What the Next Phase Will Do at Scale</div>
         <div class="card-body">
-          The proof-of-concept validated here will be scaled to a cohort of participants across
-          diverse health profiles and urban environments. The next phase will deploy the full
-          pipeline to recruit walkers through NHS and community partnerships, collecting longitudinal
-          data to model how <strong style="color:var(--text);">health burden changes with route characteristics</strong>
-          (gradient, surface, air quality, crowding). Outputs will include open datasets,
-          predictive models of walking capacity, and direct recommendations for transport planners
-          and public health commissioners.
+          This proof-of-concept demonstrates the pipeline architecture and validates the data
+          collection workflow. Two limitations are acknowledged and addressed in the next phase:
+          <br /><br />
+          <strong style="color:var(--text);">Wearable API:</strong> The production study will use a device with an open real-time API
+          (Polar H10 or Garmin) to eliminate the manual health export step entirely.
+          <br /><br />
+          <strong style="color:var(--text);">Scale:</strong> Recruitment will expand to a cohort of participants across diverse health
+          profiles and urban environments, collecting longitudinal data to model how health burden
+          changes with route characteristics (gradient, surface, crowding, air quality).
         </div>
       </div>
 

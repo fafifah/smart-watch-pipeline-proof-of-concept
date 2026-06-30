@@ -5,13 +5,14 @@
 # Until you do that (and make the repo public), nothing deploys.
 # ──────────────────────────────────────────────────────────────────────────────
 
-name: Deploy Dashboard to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
       - 'dashboard/**'
+      - 'app/**'
       - 'data/sessions.json'
 
   # Allow manual trigger from GitHub Actions tab
@@ -40,8 +41,9 @@ jobs:
 
       - name: Prepare Pages content
         run: |
-          mkdir -p _site/data
+          mkdir -p _site/data _site/app
           cp -r dashboard/. _site/
+          cp -r app/. _site/app/
           cp data/sessions.json _site/data/sessions.json
 
       - name: Upload Pages artifact
