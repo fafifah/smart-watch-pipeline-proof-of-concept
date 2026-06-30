@@ -388,6 +388,14 @@
       <span id="gps-label">Waiting for GPS…</span>
     </div>
 
+    <div id="gps-error-box" style="display:none;background:#ef444415;border:1px solid #ef444440;border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:0.85rem;font-weight:700;color:#ef4444;margin-bottom:6px;">📍 Location Access Required</div>
+      <div style="font-size:0.8rem;color:#94a3b8;line-height:1.6;" id="gps-error-detail"></div>
+      <button onclick="retryGPS()" style="margin-top:10px;background:#00bcd4;color:#0a0e1a;border:none;border-radius:8px;padding:8px 16px;font-size:0.8rem;font-weight:700;cursor:pointer;">
+        Retry GPS
+      </button>
+    </div>
+
     <div id="walk-map"></div>
 
     <div class="points-badge" id="pts-badge">0 GPS points recorded</div>
@@ -684,13 +692,51 @@ function addMapPoint(lat, lon) {
 /* ─────────────────────────────────────────────────────────
    GPS
    ───────────────────────────────────────────────────────── */
+function showGPSError(err) {
+  const dot      = document.getElementById('gps-dot');
+  const label    = document.getElementById('gps-label');
+  const errorBox = document.getElementById('gps-error-box');
+  const detail   = document.getElementById('gps-error-detail');
+
+  dot.classList.remove('active');
+  label.textContent = 'GPS unavailable';
+  errorBox.style.display = 'block';
+
+  if (err.code === 1) {
+    // PERMISSION_DENIED
+    detail.innerHTML =
+      'Location access was blocked. To fix this on iPhone:<br><br>' +
+      '1. Open the iPhone <strong style="color:#e2e8f0;">Settings</strong> app<br>' +
+      '2. Scroll down and tap <strong style="color:#e2e8f0;">Privacy & Security</strong><br>' +
+      '3. Tap <strong style="color:#e2e8f0;">Location Services</strong><br>' +
+      '4. Scroll down and tap <strong style="color:#e2e8f0;">Safari Websites</strong><br>' +
+      '5. Select <strong style="color:#e2e8f0;">While Using the App</strong><br>' +
+      '6. Come back here and tap <strong style="color:#e2e8f0;">Retry GPS</strong>';
+  } else if (err.code === 2) {
+    detail.innerHTML = 'Could not determine your location. Make sure you are outdoors or near a window, then tap <strong style="color:#e2e8f0;">Retry GPS</strong>.';
+  } else {
+    detail.innerHTML = 'Location request timed out. Tap <strong style="color:#e2e8f0;">Retry GPS</strong> to try again.';
+  }
+}
+
+function retryGPS() {
+  document.getElementById('gps-error-box').style.display = 'none';
+  document.getElementById('gps-label').textContent = 'Requesting GPS…';
+  startGPS();
+}
+
 function startGPS() {
   const dot   = document.getElementById('gps-dot');
   const label = document.getElementById('gps-label');
 
   if (!navigator.geolocation) {
-    label.textContent = 'GPS not available on this device';
+    label.textContent = 'GPS not supported on this browser';
     return;
+  }
+
+  if (gpsInterval) {
+    clearInterval(gpsInterval);
+    gpsInterval = null;
   }
 
   function recordPoint() {
@@ -699,6 +745,7 @@ function startGPS() {
         const { latitude: lat, longitude: lon, accuracy } = pos.coords;
         const ts = new Date().toISOString();
 
+        document.getElementById('gps-error-box').style.display = 'none';
         gpsPoints.push({ lat, lon, ts, accuracy });
         dot.classList.add('active');
         label.textContent = `GPS active — ${gpsPoints.length} point${gpsPoints.length !== 1 ? 's' : ''} recorded`;
@@ -708,16 +755,13 @@ function startGPS() {
 
         addMapPoint(lat, lon);
       },
-      err => {
-        dot.classList.remove('active');
-        label.textContent = `GPS error: ${err.message}`;
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 5000 }
+      err => showGPSError(err),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
     );
   }
 
-  recordPoint(); // immediate first point
-  gpsInterval = setInterval(recordPoint, 10000); // then every 10 s
+  recordPoint();
+  gpsInterval = setInterval(recordPoint, 10000);
 }
 
 /* ─────────────────────────────────────────────────────────
