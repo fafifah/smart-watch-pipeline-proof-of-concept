@@ -335,19 +335,9 @@
     </div>
 
     <div class="question-card">
-      <div class="question-label">Have You Eaten Today?</div>
-      <div class="toggle-row">
-        <span style="font-size:0.85rem;color:#94a3b8;">Yes, I have eaten</span>
-        <label class="toggle-wrap">
-          <input type="checkbox" id="tog-eaten" onchange="toggleEatenTime(this)" />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-    </div>
-
-    <div class="question-card" id="card-eaten-time" style="display:none;">
       <div class="question-label">How Long Ago Did You Last Eat?</div>
       <div class="multi-choice-row" id="eaten-time-row">
+        <button class="multi-btn" onclick="selectEatenTime(this, 'have_not_eaten')">Have not eaten</button>
         <button class="multi-btn" onclick="selectEatenTime(this, 'under_30_mins')">Under 30 mins</button>
         <button class="multi-btn" onclick="selectEatenTime(this, '30_60_mins')">30–60 mins</button>
         <button class="multi-btn" onclick="selectEatenTime(this, '1_2_hours')">1–2 hours</button>
@@ -605,16 +595,6 @@ function formatTimestamp(date) {
 /* ─────────────────────────────────────────────────────────
    SCREEN 1 → START WALK
    ───────────────────────────────────────────────────────── */
-function toggleEatenTime(checkbox) {
-  document.getElementById('card-eaten-time').style.display = checkbox.checked ? 'block' : 'none';
-  if (!checkbox.checked) {
-    preAnswers.eaten_time = 'have_not_eaten';
-    document.querySelectorAll('.multi-btn').forEach(b => b.classList.remove('selected'));
-  } else {
-    preAnswers.eaten_time = null;
-  }
-}
-
 function selectEatenTime(btn, value) {
   document.querySelectorAll('#eaten-time-row .multi-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
@@ -625,10 +605,7 @@ function startWalk() {
   if (!preAnswers.sleep_quality) { toast('Please rate your sleep quality'); return; }
   if (!preAnswers.energy_level)  { toast('Please rate your energy level');  return; }
 
-  const hasEaten = document.getElementById('tog-eaten').checked;
-  preAnswers.has_eaten = hasEaten;
-  if (!hasEaten) preAnswers.eaten_time = 'have_not_eaten';
-  if (hasEaten && !preAnswers.eaten_time) { toast('Please select when you last ate'); return; }
+  if (!preAnswers.eaten_time) { toast('Please select when you last ate'); return; }
 
   preAnswers.notes = document.getElementById('pre-notes').value.trim();
 
@@ -860,9 +837,7 @@ function resetApp() {
   // Reset scale buttons
   document.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('selected'));
   document.querySelectorAll('.multi-btn').forEach(b => b.classList.remove('selected'));
-  document.getElementById('tog-eaten').checked          = false;
   document.getElementById('tog-pain-triggered').checked = false;
-  document.getElementById('card-eaten-time').style.display = 'none';
   document.getElementById('pre-notes').value  = '';
   document.getElementById('post-notes').value = '';
 
