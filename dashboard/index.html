@@ -10,20 +10,38 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
   <style>
-    /* ── Design tokens ────────────────────────────────────── */
+    /* ── Design tokens — light (default) ─────────────────── */
     :root {
       --navy:        #dde1f0;
       --navy-mid:    #c9cfe6;
       --navy-card:   #ffffff;
-      --navy-border: #b0b8d8;
-      --teal:        #5680e9;
-      --teal-dim:    #5680e920;
-      --teal-glow:   #5680e940;
-      --amber:       #8860d0;
-      --amber-dim:   #8860d020;
-      --text:        #1a1f3a;
-      --text-muted:  #4a5280;
-      --text-faint:  #8890b0;
+      --navy-border: #9aa3c8;
+      --teal:        #3d5fc4;
+      --teal-dim:    #3d5fc420;
+      --teal-glow:   #3d5fc440;
+      --amber:       #6b3fb5;
+      --amber-dim:   #6b3fb520;
+      --text:        #0f1228;
+      --text-muted:  #2d3460;
+      --text-faint:  #5a628a;
+      --red:         #c0392b;
+      --green:       #0e8a5f;
+    }
+
+    /* ── Dark theme ───────────────────────────────────────── */
+    [data-theme="dark"] {
+      --navy:        #060d1b;
+      --navy-mid:    #0d1b2a;
+      --navy-card:   #0f1f35;
+      --navy-border: #172540;
+      --teal:        #00bcd4;
+      --teal-dim:    #00bcd420;
+      --teal-glow:   #00bcd440;
+      --amber:       #f59e0b;
+      --amber-dim:   #f59e0b20;
+      --text:        #e2e8f0;
+      --text-muted:  #94a3b8;
+      --text-faint:  #475569;
       --red:         #ef4444;
       --green:       #10b981;
     }
@@ -54,12 +72,38 @@
        HEADER
     ═══════════════════════════════════════════════════════ */
     header {
-      background: linear-gradient(160deg, #5680e9 0%, #6f8fef 60%, #8860d0 100%);
+      background: var(--header-bg, linear-gradient(160deg, #3d5fc4 0%, #5470d0 60%, #6b3fb5 100%));
       border-bottom: 1px solid var(--navy-border);
       padding: 0;
       position: relative;
       overflow: hidden;
     }
+
+    [data-theme="dark"] header {
+      background: linear-gradient(160deg, #060d1b 0%, #0a1628 60%, #0d2040 100%);
+    }
+
+    /* ── Theme toggle button ──────────────────────────────── */
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 9999;
+      background: var(--navy-card);
+      border: 1px solid var(--navy-border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px #00000020;
+    }
+    .theme-toggle:hover { color: var(--teal); border-color: var(--teal); }
 
     /* Ambient glow */
     header::before {
@@ -550,6 +594,7 @@
   </style>
 </head>
 <body>
+<button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">🌙 Dark</button>
 
 <!-- ═══════════════════════════════════════════════════════
      HEADER
@@ -1026,7 +1071,7 @@ function renderCharts() {
    INLINE ROUTE MAP — all sessions colour-coded
    ───────────────────────────────────────────────────────── */
 const SESSION_COLOURS = [
-  '#5680e9', '#8860d0', '#84ceeb', '#10b981', '#f87171',
+  '#5680e9', '#8860d0', '#0ea5e9', '#10b981', '#f87171',
   '#60a5fa', '#fb923c', '#e879f9', '#4ade80', '#facc15'
 ];
 
@@ -1082,6 +1127,28 @@ function renderMap() {
     routeMap.fitBounds(allBounds, { padding: [30, 30] });
   }
 }
+
+/* ─────────────────────────────────────────────────────────
+   THEME TOGGLE
+   ───────────────────────────────────────────────────────── */
+function toggleTheme() {
+  const isDark = document.body.getAttribute('data-theme') === 'dark';
+  document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('theme-btn').textContent = isDark ? '🌙 Dark' : '☀️ Light';
+  localStorage.setItem('theme', isDark ? 'light' : 'dark');
+  // Re-render map so tile colours update
+  if (typeof renderMap === 'function') renderMap();
+}
+
+// Restore saved preference
+(function() {
+  const saved = localStorage.getItem('theme') || 'light';
+  document.body.setAttribute('data-theme', saved);
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = saved === 'dark' ? '☀️ Light' : '🌙 Dark';
+  });
+})();
 
 /* ─────────────────────────────────────────────────────────
    BOOT
