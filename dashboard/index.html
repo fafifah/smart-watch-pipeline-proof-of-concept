@@ -140,15 +140,15 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: var(--teal-dim);
-      border: 1px solid var(--teal-glow);
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.4);
       border-radius: 20px;
       padding: 5px 14px;
       font-size: 0.72rem;
       font-weight: 700;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      color: var(--teal);
+      color: #ffffff;
       margin-bottom: 14px;
     }
 
@@ -170,11 +170,12 @@
       margin-bottom: 10px;
     }
 
-    header h1 span { color: var(--teal); }
+    header h1 { color: #ffffff; }
+    header h1 span { color: #c4d4ff; }
 
     .header-tagline {
       font-size: 0.95rem;
-      color: var(--text-muted);
+      color: rgba(255,255,255,0.8);
       max-width: 540px;
       font-style: italic;
     }
@@ -229,7 +230,7 @@
       letter-spacing: 1.2px;
       text-transform: uppercase;
       text-decoration: none;
-      color: var(--text-faint);
+      color: var(--text-muted);
       white-space: nowrap;
       transition: color 0.2s, border-color 0.2s;
       border-bottom: 2px solid transparent;
@@ -326,7 +327,7 @@
 
     .pipe-desc {
       font-size: 0.68rem;
-      color: var(--text-faint);
+      color: var(--text-muted);
       line-height: 1.4;
     }
 
@@ -709,11 +710,11 @@
       </div>
     </div>
 
-    <div style="margin-top:20px;background:#f59e0b10;border:1px solid #f59e0b30;border-radius:10px;padding:14px 18px;font-size:0.8rem;color:#94a3b8;line-height:1.7;">
-      <strong style="color:#f59e0b;">Note on wearable data extraction:</strong>
+    <div style="margin-top:20px;background:var(--amber-dim);border:1px solid var(--amber);border-radius:10px;padding:14px 18px;font-size:0.8rem;color:var(--text-muted);line-height:1.7;">
+      <strong style="color:var(--amber);">Note on wearable data extraction:</strong>
       Consumer wearables including the Redmi Watch 5 Lite do not expose a live data API.
       In this proof-of-concept, physiological data (HR, SpO₂, steps) is exported manually from Apple Health after each walk using the Health Auto Export app, then matched to walk sessions by timestamp using the Python script.
-      <strong style="color:#e2e8f0;">The production study will use a device with an open API (e.g. Polar H10 or Garmin) to automate this step entirely.</strong>
+      <strong style="color:var(--text);">The production study will use a device with an open API (e.g. Polar H10 or Garmin) to automate this step entirely.</strong>
     </div>
   </div>
 </section>
