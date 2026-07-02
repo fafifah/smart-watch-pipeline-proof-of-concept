@@ -19,6 +19,12 @@
     "post_confidence": 5,
     "post_pain_triggered": false,
     "post_notes": "",
+    "hr_avg_bpm": null,
+    "hr_min_bpm": null,
+    "hr_max_bpm": null,
+    "spo2_avg_pct": null,
+    "steps": 3598,
+    "active_energy_kcal": 112.7,
     "gps_path": [
       {
         "lat": 55.86114203993285,
