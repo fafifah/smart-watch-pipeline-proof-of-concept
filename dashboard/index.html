@@ -1054,7 +1054,11 @@ function renderMap() {
     const colour = SESSION_COLOURS[i % SESSION_COLOURS.length];
     const path   = s.gps_path.map(p => [p.lat, p.lon]);
 
-    L.polyline(path, { color: colour, weight: 5, opacity: 0.9 }).addTo(routeMap);
+    L.polyline(path, { color: colour, weight: 5, opacity: 0.9 })
+      .addTo(routeMap)
+      .bindTooltip(`${s.session_id}<br>${s.date} · ${s.duration_formatted} · ${s.total_distance_m?.toFixed(0) ?? '?'} m`, {
+        sticky: true, opacity: 0.95
+      });
 
     L.circleMarker(path[0], {
       radius: 8, fillColor: colour, color: '#fff', weight: 2, fillOpacity: 1
