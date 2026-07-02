@@ -357,73 +357,44 @@
     }
 
     /* ═══════════════════════════════════════════════════════
-       MAP MODAL
+       INLINE ROUTE MAP
     ═══════════════════════════════════════════════════════ */
-    #map-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #000000cc;
-      z-index: 9000;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    #map-modal.open { display: flex; }
-
-    .modal-box {
+    #route-map-section {
       background: var(--navy-card);
       border: 1px solid var(--navy-border);
       border-radius: 16px;
-      width: 100%;
-      max-width: 720px;
-      max-height: 90vh;
-      display: flex;
-      flex-direction: column;
       overflow: hidden;
+      margin-bottom: 32px;
     }
 
-    .modal-header {
+    .map-section-header {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
-      padding: 16px 20px;
+      padding: 16px 20px 12px;
       border-bottom: 1px solid var(--navy-border);
-      flex-shrink: 0;
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
-    .modal-title { font-size: 0.9rem; font-weight: 700; color: var(--teal); }
-    .modal-meta  { font-size: 0.75rem; color: var(--text-faint); margin-top: 3px; }
+    .map-section-title { font-size: 0.85rem; font-weight: 700; color: var(--teal); }
+    .map-section-meta  { font-size: 0.72rem; color: var(--text-faint); margin-top: 3px; }
 
-    .modal-close {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-size: 1.4rem;
-      cursor: pointer;
-      line-height: 1;
-      padding: 4px 8px;
-      border-radius: 6px;
-      transition: background 0.15s;
-    }
-    .modal-close:hover { background: var(--navy-border); color: var(--text); }
+    #route-map { height: 420px; }
 
-    #route-map { flex: 1; min-height: 400px; }
-
-    .modal-legend {
+    .map-legend {
       display: flex;
-      gap: 20px;
-      padding: 12px 20px;
+      flex-wrap: wrap;
+      gap: 14px;
+      padding: 10px 20px;
       border-top: 1px solid var(--navy-border);
-      flex-shrink: 0;
     }
 
     .legend-item {
       display: flex;
       align-items: center;
       gap: 7px;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: var(--text-muted);
     }
 
@@ -431,6 +402,13 @@
       width: 12px; height: 12px;
       border-radius: 50%;
       border: 2px solid #fff;
+      flex-shrink: 0;
+    }
+
+    .legend-swatch {
+      width: 22px; height: 4px;
+      border-radius: 2px;
+      flex-shrink: 0;
     }
 
     /* ═══════════════════════════════════════════════════════
@@ -702,7 +680,7 @@
   <div class="container">
     <div class="section-label">Collected Walk Sessions</div>
     <div class="section-heading">Live Walk Data</div>
-    <p class="section-sub">Each row represents one real walk session. Click any row to view the GPS route on an interactive map.</p>
+    <p class="section-sub">Each row represents one real walk session. All GPS routes are plotted on the map below, colour-coded by session.</p>
 
     <!-- Summary stats -->
     <div class="stats-band" id="stats-band">
@@ -722,6 +700,18 @@
         <div class="stat-val" id="stat-steps">—</div>
         <div class="stat-label">Total Steps</div>
       </div>
+    </div>
+
+    <!-- Inline route map -->
+    <div id="route-map-section">
+      <div class="map-section-header">
+        <div>
+          <div class="map-section-title">GPS Route Map — All Sessions</div>
+          <div class="map-section-meta" id="map-section-meta">Loading…</div>
+        </div>
+      </div>
+      <div id="route-map"></div>
+      <div class="map-legend" id="map-legend"></div>
     </div>
 
     <div class="table-wrap">
@@ -744,38 +734,8 @@
         <tbody id="sessions-tbody"></tbody>
       </table>
     </div>
-    <p class="click-hint">↗ Click any row to view the GPS route</p>
   </div>
 </section>
-
-<!-- ═══════════════════════════════════════════════════════
-     MAP MODAL
-═══════════════════════════════════════════════════════ -->
-<div id="map-modal">
-  <div class="modal-box">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title" id="modal-session-title">Route Map</div>
-        <div class="modal-meta" id="modal-session-meta"></div>
-      </div>
-      <button class="modal-close" onclick="closeMap()">✕</button>
-    </div>
-    <div id="route-map"></div>
-    <div class="modal-legend">
-      <div class="legend-item">
-        <div class="legend-dot" style="background:var(--teal);"></div>
-        <span>Walk start</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-dot" style="background:var(--amber);"></div>
-        <span>Walk end</span>
-      </div>
-      <div class="legend-item" style="color:var(--text-faint);">
-        © OpenStreetMap contributors
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ═══════════════════════════════════════════════════════
      VISUALISATIONS
@@ -905,6 +865,7 @@ function render() {
   renderStats();
   renderTable();
   renderCharts();
+  renderMap();
 }
 
 function renderStats() {
@@ -930,7 +891,7 @@ function renderTable() {
   }
 
   tbody.innerHTML = SESSIONS.map((s, i) => `
-    <tr onclick="openMap(${i})" title="Click to view route map">
+    <tr>
       <td class="td-session">${s.session_id}</td>
       <td class="td-muted">${s.date || '—'}</td>
       <td class="td-muted">${s.duration_formatted || '—'}</td>
@@ -1062,67 +1023,61 @@ function renderCharts() {
 }
 
 /* ─────────────────────────────────────────────────────────
-   MAP MODAL
+   INLINE ROUTE MAP — all sessions colour-coded
    ───────────────────────────────────────────────────────── */
-function openMap(index) {
-  const s = SESSIONS[index];
-  if (!s) return;
+const SESSION_COLOURS = [
+  '#00bcd4', '#f59e0b', '#a78bfa', '#34d399', '#f87171',
+  '#60a5fa', '#fb923c', '#e879f9', '#4ade80', '#facc15'
+];
 
-  document.getElementById('modal-session-title').textContent = `Route — ${s.session_id}`;
-  document.getElementById('modal-session-meta').textContent  =
-    `${s.date}  ·  ${s.start_time} → ${s.stop_time}  ·  ${s.total_distance_m?.toFixed(0) ?? '?'} m  ·  ${s.gps_path?.length ?? 0} GPS points`;
-
-  document.getElementById('map-modal').classList.add('open');
-  document.body.style.overflow = 'hidden';
-
-  // Small delay so the modal is visible before Leaflet renders
-  setTimeout(() => {
-    if (routeMap) { routeMap.remove(); routeMap = null; }
-
-    const path = (s.gps_path || []).map(p => [p.lat, p.lon]);
-    const centre = path.length
-      ? path[Math.floor(path.length / 2)]
-      : [55.8642, -4.2518];
-
-    routeMap = L.map('route-map').setView(centre, 15);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap'
-    }).addTo(routeMap);
-
-    if (path.length >= 2) {
-      L.polyline(path, { color: '#00bcd4', weight: 5, opacity: 0.9 }).addTo(routeMap);
-
-      // Start marker — teal
-      L.circleMarker(path[0], {
-        radius: 9, fillColor: '#00bcd4', color: '#fff', weight: 2, fillOpacity: 1
-      }).addTo(routeMap).bindTooltip('Start', { permanent: false });
-
-      // End marker — amber
-      L.circleMarker(path[path.length - 1], {
-        radius: 9, fillColor: '#f59e0b', color: '#fff', weight: 2, fillOpacity: 1
-      }).addTo(routeMap).bindTooltip('End', { permanent: false });
-
-      // Fit bounds
-      routeMap.fitBounds(L.polyline(path).getBounds(), { padding: [30, 30] });
-    }
-  }, 80);
-}
-
-function closeMap() {
-  document.getElementById('map-modal').classList.remove('open');
-  document.body.style.overflow = '';
+function renderMap() {
   if (routeMap) { routeMap.remove(); routeMap = null; }
+
+  const sessionsWithGps = SESSIONS.filter(s => s.gps_path && s.gps_path.length >= 2);
+
+  document.getElementById('map-section-meta').textContent =
+    sessionsWithGps.length
+      ? `${sessionsWithGps.length} session(s) plotted · © OpenStreetMap contributors`
+      : 'No GPS data yet — complete a walk with the app open to record a route';
+
+  routeMap = L.map('route-map').setView([55.8642, -4.2518], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+  }).addTo(routeMap);
+
+  const allBounds = [];
+  const legendEl = document.getElementById('map-legend');
+  legendEl.innerHTML = '';
+
+  sessionsWithGps.forEach((s, i) => {
+    const colour = SESSION_COLOURS[i % SESSION_COLOURS.length];
+    const path   = s.gps_path.map(p => [p.lat, p.lon]);
+
+    L.polyline(path, { color: colour, weight: 5, opacity: 0.9 }).addTo(routeMap);
+
+    L.circleMarker(path[0], {
+      radius: 8, fillColor: colour, color: '#fff', weight: 2, fillOpacity: 1
+    }).addTo(routeMap).bindTooltip(`${s.session_id} — Start`, { permanent: false });
+
+    L.circleMarker(path[path.length - 1], {
+      radius: 8, fillColor: '#f59e0b', color: '#fff', weight: 2, fillOpacity: 1
+    }).addTo(routeMap).bindTooltip(`${s.session_id} — End`, { permanent: false });
+
+    path.forEach(p => allBounds.push(p));
+
+    // Legend entry
+    legendEl.innerHTML += `
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:${colour};"></div>
+        <span>${s.session_id} (${s.date})</span>
+      </div>`;
+  });
+
+  if (allBounds.length) {
+    routeMap.fitBounds(allBounds, { padding: [30, 30] });
+  }
 }
-
-// Close on backdrop click
-document.getElementById('map-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeMap();
-});
-
-// Close on Escape
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMap(); });
 
 /* ─────────────────────────────────────────────────────────
    BOOT
