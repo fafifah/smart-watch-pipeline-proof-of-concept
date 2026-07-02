@@ -43,6 +43,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Always resolve paths relative to the project root (one level up from this script)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 # ── Optional deps — give friendly errors ──────────────────────────────────────
 try:
     import pandas as pd
@@ -144,34 +147,60 @@ def extract_health_metrics(health_export, start_ts, stop_ts):
     """
     metrics_raw = health_export.get("data", {}).get("metrics", [])
 
-    # Build quick lookup by metric name
-    metrics = {m["name"]: m.get("data", []) for m in metrics_raw}
+    # Build quick lookup by metric name, also store the units
+    metrics = {m["name"]: {"data": m.get("data", []), "units": m.get("units", "")} for m in metrics_raw}
+
+    walk_date = start_ts.date()
 
     def samples_in_window(name):
+        """Return samples whose timestamp falls within the walk window (per-sample data)."""
         out = []
-        for sample in metrics.get(name, []):
+        for sample in metrics.get(name, {}).get("data", []):
             ts = parse_iso(sample.get("date", ""))
             if ts and start_ts <= ts <= stop_ts:
                 out.append(sample)
         return out
 
+    def samples_on_date(name):
+        """Return samples whose date matches the walk date (daily-total data)."""
+        out = []
+        for sample in metrics.get(name, {}).get("data", []):
+            ts = parse_iso(sample.get("date", ""))
+            if ts and ts.date() == walk_date:
+                out.append(sample)
+        return out
+
+    def get_samples(name):
+        """Try per-sample window first; fall back to daily-date match."""
+        windowed = samples_in_window(name)
+        return windowed if windowed else samples_on_date(name)
+
     # Heart rate
-    hr_samples = [s["qty"] for s in samples_in_window("heart_rate") if "qty" in s]
+    hr_samples = [s["qty"] for s in get_samples("heart_rate") if "qty" in s]
     hr_avg = round(sum(hr_samples) / len(hr_samples), 1) if hr_samples else None
     hr_min = round(min(hr_samples), 1) if hr_samples else None
     hr_max = round(max(hr_samples), 1) if hr_samples else None
 
     # SpO2
-    spo2_samples = [s["qty"] for s in samples_in_window("oxygen_saturation") if "qty" in s]
+    spo2_samples = [s["qty"] for s in get_samples("oxygen_saturation") if "qty" in s]
     spo2_avg = round(sum(spo2_samples) / len(spo2_samples), 1) if spo2_samples else None
 
-    # Steps — sum of all step count samples in window
-    step_samples = [s.get("qty", 0) for s in samples_in_window("step_count")]
+    # Steps — sum; Health Auto Export may use "step_count" or "steps"
+    step_samples = [s.get("qty", 0) for s in get_samples("step_count") or get_samples("steps")]
     steps = int(sum(step_samples)) if step_samples else None
 
-    # Active energy — sum in kcal
-    energy_samples = [s.get("qty", 0) for s in samples_in_window("active_energy_burned")]
-    active_energy = round(sum(energy_samples), 1) if energy_samples else None
+    # Active energy — Health Auto Export may export in kJ ("active_energy") or kcal ("active_energy_burned")
+    energy_name = "active_energy_burned" if "active_energy_burned" in metrics else "active_energy"
+    energy_unit = metrics.get(energy_name, {}).get("units", "kcal")
+    energy_samples = [s.get("qty", 0) for s in get_samples(energy_name)]
+    if energy_samples:
+        total_energy = sum(energy_samples)
+        # Convert kJ → kcal if needed
+        if energy_unit.lower() in ("kj", "kilojoules"):
+            total_energy = total_energy / 4.184
+        active_energy = round(total_energy, 1)
+    else:
+        active_energy = None
 
     return {
         "hr_avg_bpm":           hr_avg,
@@ -208,12 +237,12 @@ def main():
     )
     args = parser.parse_args()
 
-    output_dir = Path(args.output_dir)
+    output_dir = PROJECT_ROOT / args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # ── 1. Load Firebase sessions ────────────────────────────────────────────
     print("\n[1/4] Loading walk sessions from Firebase…")
-    key_path = Path(args.firebase_key)
+    key_path = PROJECT_ROOT / args.firebase_key
     if not key_path.exists():
         sys.exit(
             f"\nFirebase key not found at {key_path}\n"
@@ -229,7 +258,7 @@ def main():
     print("\n[2/4] Loading Apple Health export…")
     health_export = {}
     if args.health_export:
-        health_path = Path(args.health_export)
+        health_path = PROJECT_ROOT / args.health_export
         if not health_path.exists():
             print(f"  Warning: health export not found at {health_path}. Skipping watch metrics.")
         else:
