@@ -888,7 +888,7 @@ let routeMap = null;
 
 async function loadSessions() {
   try {
-    const res = await fetch('../data/sessions.json');
+    const res = await fetch('data/sessions.json');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     SESSIONS = await res.json();
   } catch (e) {
