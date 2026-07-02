@@ -12,20 +12,20 @@
   <style>
     /* ── Design tokens ────────────────────────────────────── */
     :root {
-      --navy:        #0f0800;
-      --navy-mid:    #1a0f00;
-      --navy-card:   #221500;
-      --navy-border: #3a2200;
-      --teal:        #f97316;
-      --teal-dim:    #f9731620;
-      --teal-glow:   #f9731640;
-      --amber:       #fbbf24;
-      --amber-dim:   #fbbf2420;
-      --text:        #fef3e2;
-      --text-muted:  #c4a882;
-      --text-faint:  #7a5c3a;
+      --navy:        #060d1b;
+      --navy-mid:    #0d1b2a;
+      --navy-card:   #0f1f35;
+      --navy-border: #172540;
+      --teal:        #00bcd4;
+      --teal-dim:    #00bcd420;
+      --teal-glow:   #00bcd440;
+      --amber:       #f59e0b;
+      --amber-dim:   #f59e0b20;
+      --text:        #e2e8f0;
+      --text-muted:  #94a3b8;
+      --text-faint:  #475569;
       --red:         #ef4444;
-      --green:       #34d399;
+      --green:       #10b981;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -54,7 +54,7 @@
        HEADER
     ═══════════════════════════════════════════════════════ */
     header {
-      background: linear-gradient(160deg, #0f0800 0%, #1f0d00 60%, #2d1500 100%);
+      background: linear-gradient(160deg, #060d1b 0%, #0a1628 60%, #0d2040 100%);
       border-bottom: 1px solid var(--navy-border);
       padding: 0;
       position: relative;
@@ -67,7 +67,7 @@
       position: absolute;
       top: -80px; left: -80px;
       width: 500px; height: 500px;
-      background: radial-gradient(circle, #f9731618 0%, transparent 70%);
+      background: radial-gradient(circle, #00bcd412 0%, transparent 70%);
       pointer-events: none;
     }
     header::after {
@@ -75,7 +75,7 @@
       position: absolute;
       bottom: -60px; right: -40px;
       width: 400px; height: 400px;
-      background: radial-gradient(circle, #f9731610 0%, transparent 70%);
+      background: radial-gradient(circle, #00bcd408 0%, transparent 70%);
       pointer-events: none;
     }
 
@@ -592,7 +592,7 @@
 
     <!-- Phase label row -->
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-      <span style="background:#f9731620;border:1px solid #f9731640;color:#f97316;border-radius:20px;padding:4px 14px;font-size:0.7rem;font-weight:700;letter-spacing:1px;">● DURING WALK — automatic</span>
+      <span style="background:#00bcd420;border:1px solid #00bcd440;color:#00bcd4;border-radius:20px;padding:4px 14px;font-size:0.7rem;font-weight:700;letter-spacing:1px;">● DURING WALK — automatic</span>
       <span style="background:#f59e0b20;border:1px solid #f59e0b40;color:#f59e0b;border-radius:20px;padding:4px 14px;font-size:0.7rem;font-weight:700;letter-spacing:1px;">● AFTER WALK — manual step (proof-of-concept)</span>
       <span style="background:#a855f720;border:1px solid #a855f740;color:#a855f7;border-radius:20px;padding:4px 14px;font-size:0.7rem;font-weight:700;letter-spacing:1px;">● FUTURE — automated in production study</span>
     </div>
@@ -600,29 +600,29 @@
     <div class="pipeline-wrap">
       <div class="pipeline">
 
-        <div class="pipe-node" style="border-color:#f9731640;">
+        <div class="pipe-node" style="border-color:#00bcd440;">
           <span class="pipe-icon">🧍</span>
           <div class="pipe-title">Participant</div>
           <div class="pipe-desc">Researcher completing real-world walks in everyday environments to validate the pipeline</div>
-          <div style="margin-top:8px;font-size:0.62rem;color:#f97316;font-weight:700;">● DURING</div>
+          <div style="margin-top:8px;font-size:0.62rem;color:#00bcd4;font-weight:700;">● DURING</div>
         </div>
 
         <div class="pipe-arrow">→</div>
 
-        <div class="pipe-node" style="border-color:#f9731640;">
+        <div class="pipe-node" style="border-color:#00bcd440;">
           <span class="pipe-icon">📋</span>
           <div class="pipe-title">Pre-Walk Survey</div>
           <div class="pipe-desc">Mobile web app (hosted online) captures sleep, pain, energy, and medication before each walk — works on mobile data anywhere</div>
-          <div style="margin-top:8px;font-size:0.62rem;color:#f97316;font-weight:700;">● DURING · automatic</div>
+          <div style="margin-top:8px;font-size:0.62rem;color:#00bcd4;font-weight:700;">● DURING · automatic</div>
         </div>
 
         <div class="pipe-arrow">→</div>
 
-        <div class="pipe-node" style="border-color:#f9731640;">
+        <div class="pipe-node" style="border-color:#00bcd440;">
           <span class="pipe-icon">📍</span>
           <div class="pipe-title">GPS Tracking</div>
           <div class="pipe-desc">iPhone records GPS coordinates every 10 seconds during the walk and saves them to Firebase in real time</div>
-          <div style="margin-top:8px;font-size:0.62rem;color:#f97316;font-weight:700;">● DURING · automatic</div>
+          <div style="margin-top:8px;font-size:0.62rem;color:#00bcd4;font-weight:700;">● DURING · automatic</div>
         </div>
 
         <div class="pipe-arrow">→</div>
@@ -645,11 +645,11 @@
 
         <div class="pipe-arrow">→</div>
 
-        <div class="pipe-node" style="border-color:#f9731640;">
+        <div class="pipe-node" style="border-color:#00bcd440;">
           <span class="pipe-icon">🔥</span>
           <div class="pipe-title">Firebase</div>
           <div class="pipe-desc">Cloud database stores all session data, GPS tracks, and questionnaire responses — written automatically during the walk</div>
-          <div style="margin-top:8px;font-size:0.62rem;color:#f97316;font-weight:700;">● DURING · automatic</div>
+          <div style="margin-top:8px;font-size:0.62rem;color:#00bcd4;font-weight:700;">● DURING · automatic</div>
         </div>
 
         <div class="pipe-arrow">→</div>
@@ -658,7 +658,7 @@
           <span class="pipe-icon">📊</span>
           <div class="pipe-title">Live Dashboard</div>
           <div class="pipe-desc">Unified research view with interactive route maps, physiological charts, and session data table — updated after each walk</div>
-          <div style="margin-top:8px;font-size:0.62rem;color:#f97316;font-weight:700;">● AFTER · auto-deploys</div>
+          <div style="margin-top:8px;font-size:0.62rem;color:#00bcd4;font-weight:700;">● AFTER · auto-deploys</div>
         </div>
 
       </div>
@@ -945,8 +945,8 @@ function renderCharts() {
       datasets: [{
         label: 'Avg HR (bpm)',
         data: hrData,
-        backgroundColor: hrData.map(v => v > 100 ? '#ef444460' : '#f9731660'),
-        borderColor:     hrData.map(v => v > 100 ? '#ef4444'   : '#f97316'),
+        backgroundColor: hrData.map(v => v > 100 ? '#ef444460' : '#00bcd460'),
+        borderColor:     hrData.map(v => v > 100 ? '#ef4444'   : '#00bcd4'),
         borderWidth: 2,
         borderRadius: 6,
       }]
@@ -964,13 +964,13 @@ function renderCharts() {
       scales: {
         x: {
           ticks: { font: { size: 10 }, maxRotation: 30 },
-          grid: { color: '#3a2200' }
+          grid: { color: '#172540' }
         },
         y: {
           beginAtZero: false,
           min: 60,
           ticks: { font: { size: 10 } },
-          grid: { color: '#3a2200' }
+          grid: { color: '#172540' }
         }
       }
     }
@@ -985,8 +985,8 @@ function renderCharts() {
         {
           label: 'Pre-Walk Energy',
           data: energyD,
-          backgroundColor: '#f9731660',
-          borderColor: '#f97316',
+          backgroundColor: '#00bcd460',
+          borderColor: '#00bcd4',
           borderWidth: 2,
           borderRadius: 4,
         },
@@ -1010,12 +1010,12 @@ function renderCharts() {
       scales: {
         x: {
           ticks: { font: { size: 10 }, maxRotation: 30 },
-          grid: { color: '#3a2200' }
+          grid: { color: '#172540' }
         },
         y: {
           min: 0, max: 5,
           ticks: { stepSize: 1, font: { size: 10 } },
-          grid: { color: '#3a2200' }
+          grid: { color: '#172540' }
         }
       }
     }
@@ -1026,7 +1026,7 @@ function renderCharts() {
    INLINE ROUTE MAP — all sessions colour-coded
    ───────────────────────────────────────────────────────── */
 const SESSION_COLOURS = [
-  '#f97316', '#fbbf24', '#fb923c', '#34d399', '#f87171',
+  '#00bcd4', '#f59e0b', '#a78bfa', '#34d399', '#f87171',
   '#60a5fa', '#fb923c', '#e879f9', '#4ade80', '#facc15'
 ];
 
