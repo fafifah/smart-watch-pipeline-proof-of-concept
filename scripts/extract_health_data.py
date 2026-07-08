@@ -40,6 +40,8 @@ import json
 import math
 import os
 import sys
+import zipfile
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -122,93 +124,167 @@ def load_firebase_sessions(key_path):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# APPLE HEALTH PARSER
+# APPLE HEALTH PARSER  (supports JSON from Health Auto Export OR native XML/ZIP)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def parse_iso(ts_str):
-    """Parse an ISO-8601 timestamp string into a timezone-aware datetime."""
+    """Parse an ISO-8601 or Apple Health timestamp into a timezone-aware datetime."""
+    if not ts_str:
+        return None
     try:
+        # Apple native XML uses "2026-07-01 14:02:47 +0100"
+        ts_str = ts_str.strip()
+        if " " in ts_str and not ts_str[10] == "T":
+            ts_str = ts_str[:19].replace(" ", "T") + ts_str[19:]
         return datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
     except Exception:
         return None
 
 
-def extract_health_metrics(health_export, start_ts, stop_ts):
+def load_health_export(path: Path):
     """
-    Search the Health Auto Export JSON for samples that fall between
-    start_ts and stop_ts (both datetime objects).
+    Load Apple Health data from:
+      - Apple's native export.zip  (exported from the Health app)
+      - Apple's native export.xml  (unzipped from the above)
+      - Health Auto Export .json   (third-party app, now replaced)
 
-    The Health Auto Export format uses:
-        health_export["data"]["metrics"]  — list of metric objects
-        metric["name"]                    — e.g. "heart_rate"
-        metric["data"]                    — list of {date, qty, ...} samples
-
-    Returns a dict with hr_avg, hr_min, hr_max, spo2_avg, steps, active_energy_kcal.
+    Returns a unified dict: { metric_type: [(start_dt, end_dt, value, unit), ...] }
     """
-    metrics_raw = health_export.get("data", {}).get("metrics", [])
+    suffix = path.suffix.lower()
 
-    # Build quick lookup by metric name, also store the units
-    metrics = {m["name"]: {"data": m.get("data", []), "units": m.get("units", "")} for m in metrics_raw}
+    if suffix == ".zip":
+        print("  Detected Apple Health ZIP export — extracting XML…")
+        with zipfile.ZipFile(path) as z:
+            xml_names = [n for n in z.namelist() if n.endswith("export.xml")]
+            if not xml_names:
+                sys.exit("  Could not find export.xml inside the ZIP file.")
+            with z.open(xml_names[0]) as f:
+                tree = ET.parse(f)
+        return _parse_apple_xml(tree)
 
+    if suffix == ".xml":
+        print("  Detected Apple Health XML export…")
+        tree = ET.parse(path)
+        return _parse_apple_xml(tree)
+
+    if suffix == ".json":
+        print("  Detected Health Auto Export JSON…")
+        with open(path, "r") as f:
+            raw = json.load(f)
+        return _parse_hae_json(raw)
+
+    sys.exit(f"  Unrecognised health export format: {suffix}. Expected .zip, .xml, or .json")
+
+
+def _parse_apple_xml(tree):
+    """
+    Parse Apple's native export.xml.
+    Each <Record> element has: type, startDate, endDate, value, unit
+    """
+    # Map Apple type identifiers → friendly names
+    TYPE_MAP = {
+        "HKQuantityTypeIdentifierHeartRate":         "heart_rate",
+        "HKQuantityTypeIdentifierOxygenSaturation":  "oxygen_saturation",
+        "HKQuantityTypeIdentifierStepCount":         "step_count",
+        "HKQuantityTypeIdentifierActiveEnergyBurned":"active_energy_burned",
+    }
+
+    metrics = {v: [] for v in TYPE_MAP.values()}
+
+    for record in tree.getroot().iter("Record"):
+        rtype = TYPE_MAP.get(record.attrib.get("type"))
+        if not rtype:
+            continue
+        try:
+            val   = float(record.attrib["value"])
+            start = parse_iso(record.attrib.get("startDate"))
+            end   = parse_iso(record.attrib.get("endDate"))
+            unit  = record.attrib.get("unit", "")
+            if start:
+                metrics[rtype].append({"start": start, "end": end, "qty": val, "unit": unit})
+        except (ValueError, KeyError):
+            continue
+
+    print(f"  Parsed XML: " + ", ".join(f"{k}={len(v)}" for k, v in metrics.items()))
+    return {"_format": "xml", "metrics": metrics}
+
+
+def _parse_hae_json(raw):
+    """Convert Health Auto Export JSON into the same unified format."""
+    metrics_raw = raw.get("data", {}).get("metrics", [])
+    unified = {}
+    for m in metrics_raw:
+        name  = m["name"]
+        unit  = m.get("units", "")
+        items = []
+        for s in m.get("data", []):
+            ts = parse_iso(s.get("date", ""))
+            if ts:
+                items.append({"start": ts, "end": ts, "qty": s.get("qty", 0), "unit": unit})
+        unified[name] = items
+    return {"_format": "json", "metrics": unified}
+
+
+def extract_health_metrics(health_data, start_ts, stop_ts):
+    """
+    Extract HR, SpO2, steps, and active energy for a walk window.
+    Works with both Apple XML and Health Auto Export JSON unified format.
+    """
+    metrics  = health_data.get("metrics", {})
     walk_date = start_ts.date()
 
     def samples_in_window(name):
-        """Return samples whose timestamp falls within the walk window (per-sample data)."""
         out = []
-        for sample in metrics.get(name, {}).get("data", []):
-            ts = parse_iso(sample.get("date", ""))
-            if ts and start_ts <= ts <= stop_ts:
-                out.append(sample)
+        for s in metrics.get(name, []):
+            t = s["start"]
+            if start_ts <= t <= stop_ts:
+                out.append(s)
         return out
 
     def samples_on_date(name):
-        """Return samples whose date matches the walk date (daily-total data)."""
-        out = []
-        for sample in metrics.get(name, {}).get("data", []):
-            ts = parse_iso(sample.get("date", ""))
-            if ts and ts.date() == walk_date:
-                out.append(sample)
-        return out
+        return [s for s in metrics.get(name, []) if s["start"].date() == walk_date]
 
     def get_samples(name):
-        """Try per-sample window first; fall back to daily-date match."""
         windowed = samples_in_window(name)
         return windowed if windowed else samples_on_date(name)
 
     # Heart rate
-    hr_samples = [s["qty"] for s in get_samples("heart_rate") if "qty" in s]
-    hr_avg = round(sum(hr_samples) / len(hr_samples), 1) if hr_samples else None
-    hr_min = round(min(hr_samples), 1) if hr_samples else None
-    hr_max = round(max(hr_samples), 1) if hr_samples else None
+    hr_vals = [s["qty"] for s in get_samples("heart_rate")]
+    hr_avg  = round(sum(hr_vals) / len(hr_vals), 1) if hr_vals else None
+    hr_min  = round(min(hr_vals), 1) if hr_vals else None
+    hr_max  = round(max(hr_vals), 1) if hr_vals else None
 
-    # SpO2
-    spo2_samples = [s["qty"] for s in get_samples("oxygen_saturation") if "qty" in s]
-    spo2_avg = round(sum(spo2_samples) / len(spo2_samples), 1) if spo2_samples else None
+    # SpO2 — Apple XML stores as fraction (0.97), HAE as percentage (97)
+    spo2_raw = [s["qty"] for s in get_samples("oxygen_saturation")]
+    if spo2_raw:
+        avg = sum(spo2_raw) / len(spo2_raw)
+        spo2_avg = round(avg * 100 if avg < 2 else avg, 1)
+    else:
+        spo2_avg = None
 
-    # Steps — sum; Health Auto Export may use "step_count" or "steps"
-    step_samples = [s.get("qty", 0) for s in get_samples("step_count") or get_samples("steps")]
-    steps = int(sum(step_samples)) if step_samples else None
+    # Steps
+    step_vals = [s["qty"] for s in get_samples("step_count")]
+    steps = int(sum(step_vals)) if step_vals else None
 
-    # Active energy — Health Auto Export may export in kJ ("active_energy") or kcal ("active_energy_burned")
+    # Active energy — convert kJ → kcal if needed
     energy_name = "active_energy_burned" if "active_energy_burned" in metrics else "active_energy"
-    energy_unit = metrics.get(energy_name, {}).get("units", "kcal")
-    energy_samples = [s.get("qty", 0) for s in get_samples(energy_name)]
+    energy_samples = get_samples(energy_name)
     if energy_samples:
-        total_energy = sum(energy_samples)
-        # Convert kJ → kcal if needed
-        if energy_unit.lower() in ("kj", "kilojoules"):
-            total_energy = total_energy / 4.184
-        active_energy = round(total_energy, 1)
+        total = sum(s["qty"] for s in energy_samples)
+        unit  = energy_samples[0].get("unit", "kcal")
+        if unit.lower() in ("kj", "kilojoules"):
+            total = total / 4.184
+        active_energy = round(total, 1)
     else:
         active_energy = None
 
     return {
-        "hr_avg_bpm":           hr_avg,
-        "hr_min_bpm":           hr_min,
-        "hr_max_bpm":           hr_max,
-        "spo2_avg_pct":         spo2_avg,
-        "steps":                steps,
-        "active_energy_kcal":   active_energy,
+        "hr_avg_bpm":         hr_avg,
+        "hr_min_bpm":         hr_min,
+        "hr_max_bpm":         hr_max,
+        "spo2_avg_pct":       spo2_avg,
+        "steps":              steps,
+        "active_energy_kcal": active_energy,
     }
 
 
@@ -228,7 +304,7 @@ def main():
     parser.add_argument(
         "--health-export",
         default=None,
-        help="Path to Health Auto Export JSON file. If omitted, watch metrics will be blank.",
+        help="Path to Apple Health export — .zip or export.xml (from Health app) or .json (Health Auto Export). If omitted, watch metrics will be blank.",
     )
     parser.add_argument(
         "--output-dir",
@@ -262,8 +338,7 @@ def main():
         if not health_path.exists():
             print(f"  Warning: health export not found at {health_path}. Skipping watch metrics.")
         else:
-            with open(health_path, "r") as f:
-                health_export = json.load(f)
+            health_export = load_health_export(health_path)
             print(f"  Loaded health export from {health_path}")
     else:
         print("  No --health-export path given. Watch metrics will be empty.")
